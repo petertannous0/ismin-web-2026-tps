@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ModelsController } from './models.controller.js';
+import { ModelsService } from './models.service.js';
 
 /**
  * The module: the box that declares what goes together.
@@ -7,8 +9,7 @@ import { Module } from '@nestjs/common';
  *    then watch the tests start. Until then, Nest knows neither of them.
  */
 @Module({
-  controllers: [],
-  providers: [],
-  exports: [],
+  controllers: [ModelsController],
+  providers: [ModelsService],
 })
 export class ModelsModule {}
