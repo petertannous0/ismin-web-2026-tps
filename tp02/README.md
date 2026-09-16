@@ -67,7 +67,7 @@ One rule: the controller translates HTTP, the service decides. No business logic
 
 ## 🛰 Extra
 
-- **A. Load `data/models.json` on startup**, three times: `readFile` with a callback, then its promise version, then `async/await`. Look up `OnModuleInit`.
+- **A. Load `data/models.json` on startup**, with `readFile` from `node:fs/promises` and `async`/`await`. Look up `OnModuleInit`.
 - **B. Real data.** Replace the file with `https://huggingface.co/api/models?limit=50&sort=downloads`. Field names differ, and the file stays your fallback when the API is down.
 
 ## 🤖 AI
