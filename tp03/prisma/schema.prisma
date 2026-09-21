@@ -12,6 +12,7 @@ generator client {
   importFileExtension = "js"
 }
 
+
 // 👉 STEP 2: Describe the `Model` entity, with the fields of
 //    src/models/model.ts, same names. The README lists the decisions to make.
 //
@@ -21,6 +22,25 @@ generator client {
 //   }
 //
 // Once written:  npx prisma migrate dev --name init
+model Model {
+  id             String       @id
+  name           String
+  
+  // L'ancien champ `org String` disparaît et est remplacé par la relation
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  
+  task           String
+  parameters     Float
+  downloads      Int
+  license        String?
+}
 
-// 👉 STEP 5: Then add an `Organisation` entity and replace the plain
-//    `org` text field with a real relation. See the README.
+// 👉 L'Étape 5 : La nouvelle table Organisation
+model Organisation {
+  id      String  @id @default(uuid())
+  slug    String  @unique
+  name    String
+  country String?
+  models  Model[]
+}

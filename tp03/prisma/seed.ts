@@ -2,10 +2,6 @@
  * Populates the database from `data/models.json`.
  *
  *   npm run db:seed
- *
- * 👉 STEP 6: this script works as-is once step 2 is done.
- *    After step 5 (the Organisation relation) you will need to adapt it:
- *    create the organisations before the models.
  */
 import { readFile } from 'node:fs/promises';
 import 'dotenv/config';
@@ -25,19 +21,44 @@ interface ModelSeed {
 }
 
 async function main(): Promise<void> {
-  // Path relative to the project root: npm scripts run from there.
   const raw = await readFile('data/models.json', 'utf8');
   const models = JSON.parse(raw) as ModelSeed[];
 
-  for (const model of models) {
-    await prisma.model.upsert({
-      where: { id: model.id },
-      create: model,
-      update: model,
+  // ÉTAPE 1 : Créer les organisations AVANT les modèles (Le piège est évité !)
+  // On utilise un Set pour ne garder que les organisations uniques (sans doublons)
+  const uniqueOrgs = [...new Set(models.map(m => m.org))];
+  
+  for (const org of uniqueOrgs) {
+    await prisma.organisation.upsert({
+      where: { slug: org },
+      create: { slug: org, name: org }, // On met le slug en guise de nom
+      update: {}, // Si elle existe déjà, on ne change rien
     });
   }
 
-  console.log(`✅ ${models.length} models inserted`);
+  // ÉTAPE 2 : Créer les modèles en les connectant à leur orga
+  for (const model of models) {
+    // On reformate les données pour la nouvelle base de données
+    const modelData = {
+      id: model.id,
+      name: model.name,
+      task: model.task,
+      parameters: model.parameters,
+      downloads: model.downloads,
+      organisation: {
+        connect: { slug: model.org }, // On connecte à l'orga correspondante
+      },
+    };
+
+    await prisma.model.upsert({
+      where: { id: model.id },
+      create: modelData,
+      update: modelData,
+    });
+  }
+
+  console.log(`✅ ${uniqueOrgs.length} organisations insérées`);
+  console.log(`✅ ${models.length} modèles insérés`);
 }
 
 main()

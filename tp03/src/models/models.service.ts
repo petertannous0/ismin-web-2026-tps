@@ -1,52 +1,93 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { Model, Task } from './model.js';
+import { Model, Task, TASKS } from './model.js';
 
-/**
- * The service, to be moved from memory to the database.
- *
- * The public contract does not change, but everything becomes
- * **asynchronous**: every Prisma call goes over the network and returns
- * a promise.
- *
- * 👉 STEP 4: replace each `throw` with a Prisma call.
- *
- * ⚠️ Three differences from yesterday's Map:
- *
- *    - `findUnique` returns `null`, not `undefined`
- *
- *    - `delete` throws when the row does not exist
- *      (look at `deleteMany`, or catch the error)
- *
- *    - SQLite has no union types: as far as the database is concerned,
- *      `task` is any string. So the compiler will refuse to treat a
- *      database row as a `Model`. Same lesson as session 1: what comes
- *      from outside is not guaranteed. Narrow the type at the boundary:
- *      a small private `toModel(row)` helper does the job nicely.
- */
 @Injectable()
 export class ModelsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(model: Model): Promise<Model> {
-    throw new Error('create is not implemented yet');
+    // 1. On supprime l'ancien s'il existe
+    await this.prisma.model.deleteMany({ where: { id: model.id } });
+    
+    // 2. On crée le modèle ET on le relie à son organisation
+    const created = await this.prisma.model.create({
+      data: {
+        id: model.id,
+        name: model.name,
+        task: model.task,
+        parameters: model.parameters,
+        downloads: model.downloads,
+        license: model.license,
+        // C'est ici la magie de Prisma : il cherche l'organisation, 
+        // et s'il ne la trouve pas, il la crée !
+        organisation: {
+          connectOrCreate: {
+            where: { slug: model.org },
+            create: { slug: model.org, name: model.org },
+          },
+        },
+      },
+      include: { organisation: true }, // On demande à Prisma de nous renvoyer l'organisation avec le modèle
+    });
+
+    return this.toModel(created);
   }
 
-  async findAll(filters: { org?: string; task?: Task } = {}): Promise<Model[]> {
-    throw new Error('findAll is not implemented yet');
+  async findAll(filters: { org?: string; task?: string } = {}): Promise<Model[]> {
+    const rows = await this.prisma.model.findMany({
+      where: { 
+        task: filters.task,
+        // On filtre sur le "slug" de la table organisation jointe
+        organisation: filters.org ? { slug: filters.org } : undefined,
+      },
+      include: { organisation: true }, // Essentiel pour récupérer le nom de l'organisation
+    });
+
+    return rows.map((row) => this.toModel(row));
   }
 
-  async findOne(id: string): Promise<Model | null> {
-    throw new Error('findOne is not implemented yet');
+  async findOne(id: string): Promise<Model> {
+    const row = await this.prisma.model.findUnique({ 
+      where: { id },
+      include: { organisation: true }, // On joint la table organisation
+    });
+
+    if (!row) {
+      throw new NotFoundException(`Model ${id} not found`);
+    }
+
+    return this.toModel(row);
   }
 
-  /** Returns `true` if the model existed, `false` otherwise. */
   async remove(id: string): Promise<boolean> {
-    throw new Error('remove is not implemented yet');
+    const { count } = await this.prisma.model.deleteMany({ where: { id } });
+    return count > 0;
   }
 
-  /** Given: used by the tests to start from an empty database. */
   async clear(): Promise<void> {
     await this.prisma.model.deleteMany();
+    // On nettoie aussi les organisations pour repartir à zéro dans les tests
+    await this.prisma.organisation.deleteMany();
+  }
+
+private toModel(row: any): Model {
+    if (!this.isTask(row.task)) {
+      throw new Error(`Unknown task "${row.task}" for model ${row.id}`);
+    }
+
+    return {
+      id: row.id,
+      name: row.name,
+      org: row.organisation.slug,
+      task: row.task,
+      parameters: row.parameters,
+      downloads: row.downloads,
+      ...(row.license === null ? {} : { license: row.license }),
+    };
+  }
+
+  private isTask(value: string): value is Task {
+    return (TASKS as string[]).includes(value);
   }
 }
