@@ -1,4 +1,4 @@
-import type { Task } from '../model';
+import { type Task, TASKS, TASK_LABELS } from '../model';
 
 interface TaskFilterProps {
   /** The selected task, or undefined for "all of them". */
@@ -13,9 +13,25 @@ interface TaskFilterProps {
  */
 export const TaskFilter = ({ value, onChange }: TaskFilterProps) => {
   return (
-    <nav className="filters">
-      TODO: {value ?? 'Toutes'}
-      <button onClick={() => onChange(undefined)}>Toutes</button>
+    <nav className="filters" aria-label="Filtrer par tâche">
+      <button 
+        className="filter" 
+        aria-pressed={value === undefined} 
+        onClick={() => onChange(undefined)}
+      >
+        Toutes
+      </button>
+      
+      {TASKS.map((task) => (
+        <button 
+          key={task}
+          className="filter" 
+          aria-pressed={value === task} 
+          onClick={() => onChange(task)}
+        >
+          {TASK_LABELS[task]}
+        </button>
+      ))}
     </nav>
   );
 };

@@ -23,7 +23,9 @@ async function bootstrap() {
   );
 
   // TODO (TP7, step 7): let the frontend call this API. Its origin is in WEB_ORIGIN.
-  // app.enableCors();
+  app.enableCors({
+    origin: process.env.WEB_ORIGIN ?? 'http://localhost:5173',
+  });
 
   // Swagger UI on /docs, the OpenAPI document on /docs-json.
   // `persistAuthorization` keeps the token pasted in "Authorize" across reloads.

@@ -1,14 +1,46 @@
-/**
- * The mockup: the page as a designer would hand it over, static HTML written
- * as JSX, and nothing else. `npm run dev`, then localhost:5173.
- *
- * You turn it into components, step by step:
- *   step 2  one card    → <ModelCard model={…} />
- *   step 3  the <ul>    → <ModelList models={MOCK_MODELS} />
- *   step 4  the <nav>   → <TaskFilter value={task} onChange={setTask} />, the state lives here
- *   step 6  MOCK_MODELS → the API
- */
+import { useEffect, useState } from 'react';
+import type { Model, Task } from './model';
+import { fetchModels } from './api';
+import { ModelList } from './components/ModelList';
+import { TaskFilter } from './components/TaskFilter';
+
 const App = () => {
+  const [task, setTask] = useState<Task | undefined>(undefined);
+  
+  // Nouveaux états pour le réseau : les données, le chargement, et les erreurs
+  const [models, setModels] = useState<Model[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // useEffect se déclenche au démarrage ET à chaque fois que `task` change
+  useEffect(() => {
+    let ignore = false; // Pour éviter les bugs si on clique très vite sur plusieurs filtres
+
+    async function loadModels() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchModels(task);
+        if (!ignore) {
+          setModels(data);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : 'Erreur réseau');
+          setLoading(false);
+        }
+      }
+    }
+
+    loadModels();
+
+    // Fonction de nettoyage
+    return () => {
+      ignore = true;
+    };
+  }, [task]);
+
   return (
     <main className="app">
       <header className="app-header">
@@ -16,74 +48,14 @@ const App = () => {
         <p className="app-tagline">Le catalogue des modèles d'IA</p>
       </header>
 
-      <nav className="filters" aria-label="Filtrer par tâche">
-        <button className="filter" aria-pressed="true">Toutes</button>
-        <button className="filter" aria-pressed="false">Génération de texte</button>
-        <button className="filter" aria-pressed="false">Traduction</button>
-        <button className="filter" aria-pressed="false">Classification d'images</button>
-        <button className="filter" aria-pressed="false">Reconnaissance vocale</button>
-      </nav>
+      <TaskFilter value={task} onChange={setTask} />
 
-      <ul className="model-list">
-        <li>
-          <article className="card">
-            <header className="card-header">
-              <h2 className="card-title">Mistral-7B-Instruct-v0.3</h2>
-              <span className="badge">Génération de texte</span>
-            </header>
-            <p className="card-org">mistralai</p>
-            <dl className="card-stats">
-              <div>
-                <dt>Paramètres</dt>
-                <dd>7,25 milliards</dd>
-              </div>
-              <div>
-                <dt>Téléchargements</dt>
-                <dd>1 420 000</dd>
-              </div>
-            </dl>
-            <p className="card-license">Licence apache-2.0</p>
-          </article>
-        </li>
-        <li>
-          <article className="card">
-            <header className="card-header">
-              <h2 className="card-title">t5-base</h2>
-              <span className="badge">Traduction</span>
-            </header>
-            <p className="card-org">google-t5</p>
-            <dl className="card-stats">
-              <div>
-                <dt>Paramètres</dt>
-                <dd>223 millions</dd>
-              </div>
-              <div>
-                <dt>Téléchargements</dt>
-                <dd>2 100 000</dd>
-              </div>
-            </dl>
-          </article>
-        </li>
-        <li>
-          <article className="card">
-            <header className="card-header">
-              <h2 className="card-title">whisper-large-v3</h2>
-              <span className="badge">Reconnaissance vocale</span>
-            </header>
-            <p className="card-org">openai</p>
-            <dl className="card-stats">
-              <div>
-                <dt>Paramètres</dt>
-                <dd>1,55 milliards</dd>
-              </div>
-              <div>
-                <dt>Téléchargements</dt>
-                <dd>4 100 000</dd>
-              </div>
-            </dl>
-          </article>
-        </li>
-      </ul>
+      {/* Affichage conditionnel selon l'état du réseau */}
+      {loading && <p role="status" className="status">Chargement...</p>}
+      
+      {error && <p role="alert" className="error">Erreur : {error}</p>}
+      
+      {!loading && !error && <ModelList models={models} />}
     </main>
   );
 };
