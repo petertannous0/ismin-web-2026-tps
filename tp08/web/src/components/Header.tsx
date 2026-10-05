@@ -1,3 +1,5 @@
+import { Link } from 'react-router';
+
 /**
  * The top of every page: the title, which leads back to the catalogue.
  *
@@ -9,7 +11,8 @@ export const Header = () => {
     <header className="app-header">
       <div>
         <h1 className="app-title">
-          <a href="/">ModelZoo</a>
+          {/* On remplace <a href="/"> par <Link to="/"> */}
+          <Link to="/">ModelZoo</Link>
         </h1>
         <p className="app-tagline">Le catalogue des modèles d'IA</p>
       </div>

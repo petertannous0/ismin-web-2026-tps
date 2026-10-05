@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { formatDownloads, formatParameters } from '../format';
 import { TASK_LABELS, type Model } from '../model';
 
@@ -14,7 +15,10 @@ export const ModelCard = ({ model }: ModelCardProps) => {
   return (
     <article className="card">
       <header className="card-header">
-        <h2 className="card-title">{model.name}</h2>
+        <h2 className="card-title">
+          {/* On transforme le nom en lien dynamique avec des backticks ` ` */}
+          <Link to={`/models/${model.id}`}>{model.name}</Link>
+        </h2>
         <span className="badge">{TASK_LABELS[model.task]}</span>
       </header>
       <p className="card-org">{model.org}</p>

@@ -49,5 +49,7 @@ export async function fetchModels(task?: Task): Promise<Model[]> {
  * throwIfNotOk turns it into an ApiError whose `status` is 404.
  */
 export async function fetchModel(id: string): Promise<Model> {
-  throw new Error(`TODO step 4: GET /models/${id}`);
+  const res = await fetch(`${API_URL}/models/${id}`);
+  await throwIfNotOk(res);
+  return (await res.json()) as Model;
 }
